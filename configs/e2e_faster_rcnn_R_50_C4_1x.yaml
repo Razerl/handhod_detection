@@ -1,0 +1,12 @@
+MODEL:
+  META_ARCHITECTURE: "GeneralizedRCNN"
+  WEIGHT: "output/model_0099999.pth"
+DATASETS:
+  TRAIN: ("hhod_trainval",)
+  TEST: ("hhod_test",)
+SOLVER:
+  BASE_LR: 0.01
+  WEIGHT_DECAY: 0.0001
+  STEPS: (60000, 80000)
+  MAX_ITER: 100000
+  IMS_PER_BATCH: 8
