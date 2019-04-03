@@ -9,7 +9,8 @@ class FastRCNNPredictor(nn.Module):
         stage_index = 4
         stage2_relative_factor = 2 ** (stage_index - 1)
         res2_out_channels = config.MODEL.RESNETS.RES2_OUT_CHANNELS
-        num_inputs = res2_out_channels * stage2_relative_factor
+        add_depth = config.DATASETS.ADD_DEPTH
+        num_inputs = res2_out_channels * (int(add_depth) + 1) * stage2_relative_factor
 
         num_classes = config.MODEL.ROI_BOX_HEAD.NUM_CLASSES
         self.avgpool = nn.AvgPool2d(kernel_size=7, stride=7)

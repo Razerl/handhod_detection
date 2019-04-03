@@ -19,6 +19,7 @@ class ROIBoxHead(torch.nn.Module):
         self.predictor = make_roi_box_predictor(cfg)
         self.post_processor = make_roi_box_post_processor(cfg)
         self.loss_evaluator = make_roi_box_loss_evaluator(cfg)
+        self.add_depth = cfg.DATASETS.ADD_DEPTH
 
     def forward(self, features, proposals, targets=None):
         """
@@ -41,9 +42,14 @@ class ROIBoxHead(torch.nn.Module):
             with torch.no_grad():
                 proposals = self.loss_evaluator.subsample(proposals, targets)
 
-        # extract features that will be fed to the final classifier. The
-        # feature_extractor generally corresponds to the pooler + heads
-        x = self.feature_extractor(features, proposals)
+        if self.add_depth:
+            x_rgb = self.feature_extractor([features[0]], proposals)
+            x_d = self.feature_extractor([features[1]], proposals)
+            x = torch.cat((x_rgb, x_d), 1)
+        else:
+            # extract features that will be fed to the final classifier. The
+            # feature_extractor generally corresponds to the pooler + heads
+            x = self.feature_extractor(features, proposals)
         # final classifier that converts the features into predictions
         class_logits, box_regression = self.predictor(x)
 
@@ -52,7 +58,7 @@ class ROIBoxHead(torch.nn.Module):
             return x, result, {}
 
         loss_classifier, loss_box_reg = self.loss_evaluator(
-            proposals, [class_logits], [box_regression]
+            [class_logits], [box_regression]
         )
         return (
             x,

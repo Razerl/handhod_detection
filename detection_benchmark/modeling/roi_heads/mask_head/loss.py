@@ -2,10 +2,10 @@
 import torch
 from torch.nn import functional as F
 
-from maskrcnn_benchmark.layers import smooth_l1_loss
-from maskrcnn_benchmark.modeling.matcher import Matcher
-from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
-from maskrcnn_benchmark.modeling.utils import cat
+from detection_benchmark.layers import smooth_l1_loss
+from detection_benchmark.modeling.matcher import Matcher
+from detection_benchmark.structures.boxlist_ops import boxlist_iou
+from detection_benchmark.modeling.utils import cat
 
 
 def project_masks_on_boxes(segmentation_masks, proposals, discretization_size):
@@ -30,7 +30,7 @@ def project_masks_on_boxes(segmentation_masks, proposals, discretization_size):
     # TODO put the proposals on the CPU, as the representation for the
     # masks is not efficient GPU-wise (possibly several small tensors for
     # representing a single instance mask)
-    proposals = proposals.bbox.to(torch.device("cpu"))
+    proposals = proposals.bbox.detach().to(torch.device("cpu"))
     for segmentation_mask, proposal in zip(segmentation_masks, proposals):
         # crop the masks, resize them to the desired resolution and
         # then convert them to the tensor representation,

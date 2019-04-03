@@ -2,7 +2,7 @@
 import torch
 from torch import nn
 
-from maskrcnn_benchmark.structures.bounding_box import BoxList
+from detection_benchmark.structures.bounding_box import BoxList
 
 from .roi_mask_feature_extractors import make_roi_mask_feature_extractor
 from .roi_mask_predictors import make_roi_mask_predictor
@@ -26,7 +26,7 @@ def keep_only_positive_boxes(boxes):
     num_boxes = 0
     for boxes_per_image in boxes:
         labels = boxes_per_image.get_field("labels")
-        inds_mask = labels > 0
+        inds_mask = labels >= 0
         inds = inds_mask.nonzero().squeeze(1)
         positive_boxes.append(boxes_per_image[inds])
         positive_inds.append(inds_mask)
@@ -41,6 +41,7 @@ class ROIMaskHead(torch.nn.Module):
         self.predictor = make_roi_mask_predictor(cfg)
         self.post_processor = make_roi_mask_post_processor(cfg)
         self.loss_evaluator = make_roi_mask_loss_evaluator(cfg)
+        self.add_depth = cfg.DATASETS.ADD_DEPTH
 
     def forward(self, features, proposals, targets=None):
         """
@@ -66,7 +67,12 @@ class ROIMaskHead(torch.nn.Module):
             x = features
             x = x[torch.cat(positive_inds, dim=0)]
         else:
-            x = self.feature_extractor(features, proposals)
+            if self.add_depth:
+                x_rgb = self.feature_extractor([features[0]], proposals)
+                x_d = self.feature_extractor([features[1]], proposals)
+                x = torch.cat((x_rgb, x_d), 1)
+            else:
+                x = self.feature_extractor(features, proposals)
         mask_logits = self.predictor(x)
 
         if not self.training:

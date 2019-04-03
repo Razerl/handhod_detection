@@ -97,7 +97,7 @@ class FastRCNNLossComputation(object):
         self._proposals = proposals
         return proposals
 
-    def __call__(self, proposals, class_logits, box_regression):
+    def __call__(self, class_logits, box_regression):
         """
         Computes the loss for Faster R-CNN.
         This requires that the subsample method has been called beforehand.
@@ -114,6 +114,11 @@ class FastRCNNLossComputation(object):
         class_logits = cat(class_logits, dim=0)
         box_regression = cat(box_regression, dim=0)
         device = class_logits.device
+        
+        if not hasattr(self, "_proposals"):
+            raise RuntimeError("subsample needs to be called before")
+
+        proposals = self._proposals
 
         labels = cat([proposal.get_field("labels") for proposal in proposals], dim=0)
         regression_targets = cat(
@@ -132,10 +137,10 @@ class FastRCNNLossComputation(object):
         box_loss = smooth_l1_loss(
             box_regression[sampled_pos_inds_subset[:, None], map_inds],
             regression_targets[sampled_pos_inds_subset],
-            size_average=False,
+            size_average=True,
             beta=1,
         )
-        box_loss = box_loss / labels.numel()
+        # box_loss = box_loss / labels.numel()
 
         return classification_loss, box_loss
 

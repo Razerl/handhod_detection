@@ -107,13 +107,13 @@ class PostProcessor(nn.Module):
         # inds_all = scores > self.score_thresh
         scores_remove_bg = scores[:, 1:]
         max_scores_cls, max_cls_index = torch.max(scores_remove_bg, 1)
-        max_score, max_score_index = torch.max(max_scores_cls,0)
+        max_score, max_score_index = torch.max(max_scores_cls, 0, keepdim=True)
         index_cls_best = max_cls_index[max_score_index]
         cls_best = index_cls_best+1
         boxes_best = boxes[[max_score_index], cls_best * 4 : (cls_best + 1) * 4]
         boxlist_best = BoxList(boxes_best,boxlist.size,mode="xyxy")
-        boxlist_best.add_field('scores', [max_score])
-        boxlist_best.add_field('labels', [cls_best])
+        boxlist_best.add_field('scores', max_score)
+        boxlist_best.add_field('labels', cls_best)
 
         result = boxlist_best
         number_of_detections = len(result)

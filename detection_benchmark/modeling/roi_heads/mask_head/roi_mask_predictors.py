@@ -2,8 +2,8 @@
 from torch import nn
 from torch.nn import functional as F
 
-from maskrcnn_benchmark.layers import Conv2d
-from maskrcnn_benchmark.layers import ConvTranspose2d
+from detection_benchmark.layers import Conv2d
+from detection_benchmark.layers import ConvTranspose2d
 
 
 class MaskRCNNC4Predictor(nn.Module):
@@ -18,7 +18,8 @@ class MaskRCNNC4Predictor(nn.Module):
             stage_index = 4
             stage2_relative_factor = 2 ** (stage_index - 1)
             res2_out_channels = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS
-            num_inputs = res2_out_channels * stage2_relative_factor
+            add_depth = cfg.DATASETS.ADD_DEPTH
+            num_inputs = res2_out_channels * (int(add_depth) + 1) * stage2_relative_factor
 
         self.conv5_mask = ConvTranspose2d(num_inputs, dim_reduced, 2, 2, 0)
         self.mask_fcn_logits = Conv2d(dim_reduced, num_classes, 1, 1, 0)
