@@ -5,6 +5,7 @@ import time
 
 import torch
 from torch.distributed import deprecated as dist
+from tensorboard_logger import configure, log_value
 
 from detection_benchmark.utils.comm import get_world_size
 from detection_benchmark.utils.metric_logger import MetricLogger
@@ -44,6 +45,7 @@ def do_train(
     device,
     checkpoint_period,
     arguments,
+    add_depth,
 ):
     logger = logging.getLogger("detection_benchmark.trainer")
     logger.info("Start training")
@@ -53,6 +55,8 @@ def do_train(
     model.train()
     start_training_time = time.time()
     end = time.time()
+    #configure of tensorboard_logdir
+    configure('output/log')
 
     for iteration, (images, targets) in enumerate(data_loader, start_iter):
         data_time = time.time() - end
@@ -60,7 +64,10 @@ def do_train(
 
         scheduler.step()
 
-        images = images.to(device)
+        if add_depth:
+            images = (images[0].to(device), images[1].to(device))
+        else:
+            images = images.to(device)
         targets = [target.to(device) for target in targets]
 
         loss_dict = model(images, targets)
@@ -71,6 +78,8 @@ def do_train(
         loss_dict_reduced = reduce_loss_dict(loss_dict)
         losses_reduced = sum(loss for loss in loss_dict_reduced.values())
         meters.update(loss=losses_reduced, **loss_dict_reduced)
+
+        log_value('train_loss',losses_reduced, iteration)
 
         optimizer.zero_grad()
         losses.backward()
