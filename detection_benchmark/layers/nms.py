@@ -1,6 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 # from ._utils import _C
-import _C
+from detection_benchmark import _C
 
 nms = _C.nms
 # nms.__doc__ = """
