@@ -1,0 +1,17 @@
+MODEL:
+  META_ARCHITECTURE: "GeneralizedRCNN"
+#  WEIGHT: "models/e2e_mask_rcnn_R_50_C4_1x.pth"
+  WEIGHT: "output/mask-rcnn-r-50-c4-1x/model_depth_40.pth"
+  ROI_MASK_HEAD:
+    PREDICTOR: "MaskRCNNC4Predictor"
+    SHARE_BOX_FEATURE_EXTRACTOR: True
+  MASK_ON: True
+DATASETS:
+  TRAIN: ("hhod_trainval",)
+  TEST: ("hhod_test",)
+SOLVER:
+  BASE_LR: 0.001
+  WEIGHT_DECAY: 0.001
+  STEPS: (45000, 47500)
+  MAX_ITER: 50000
+  IMS_PER_BATCH: 8
