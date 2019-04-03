@@ -20,7 +20,7 @@ def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Inference")
     parser.add_argument(
         "--config-file",
-        default="/home/razer/Documents/pytorch/handhod_faster_rcnn/configs/e2e_faster_rcnn_R_50_C4_1x.yaml",
+        default="/home/razer/Documents/pytorch/handhod_faster_rcnn/configs/e2e_mask_rcnn_R_50_C4_1x.yaml",
         metavar="FILE",
         help="path to config file",
     )
@@ -69,12 +69,15 @@ def main():
             mkdir(output_folder)
             output_folders[idx] = output_folder
     data_loaders_val = make_data_loader(cfg, is_train=False, is_distributed=distributed)
+    add_depth = cfg.DATASETS.ADD_DEPTH
     for output_folder, data_loader_val in zip(output_folders, data_loaders_val):
         inference(
             model,
             data_loader_val,
+            add_depth,
             device=cfg.MODEL.DEVICE,
             output_folder=output_folder,
+
         )
         synchronize()
 

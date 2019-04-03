@@ -46,7 +46,7 @@ def train(cfg, local_rank, distributed):
         cfg, model, optimizer, scheduler, output_dir, save_to_disk
     )
     extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT)
-    arguments.update(extra_checkpoint_data)
+    # arguments.update(extra_checkpoint_data)
 
     data_loader = make_data_loader(
         cfg,
@@ -57,6 +57,8 @@ def train(cfg, local_rank, distributed):
 
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
 
+    add_depth = cfg.DATASETS.ADD_DEPTH
+
     do_train(
         model,
         data_loader,
@@ -66,6 +68,7 @@ def train(cfg, local_rank, distributed):
         device,
         checkpoint_period,
         arguments,
+        add_depth,
     )
 
     return model
@@ -97,7 +100,7 @@ def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
         "--config-file",
-        default="/home/razer/Documents/pytorch/handhod_faster_rcnn/configs/e2e_faster_rcnn_R_50_C4_1x.yaml",
+        default="/home/razer/Documents/pytorch/handhod_faster_rcnn/configs/e2e_mask_rcnn_R_50_C4_1x.yaml",
         metavar="FILE",
         help="path to config file",
         type=str,
