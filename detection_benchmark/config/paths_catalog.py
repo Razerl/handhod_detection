@@ -5,7 +5,7 @@ import os
 
 
 class DatasetCatalog(object):
-    DATA_DIR = "/home/razer/Documents/pytorch/handhod_faster_rcnn/datasets"
+    DATA_DIR = "/home/razer/Documents/datasets"
 
     DATASETS = {
         "coco_2014_train": (
@@ -22,12 +22,12 @@ class DatasetCatalog(object):
             "coco/annotations/instances_valminusminival2014.json",
         ),
         "hhod_trainval": (
-            "hhod/Raw_trainval",
-            "hhod/BBox"
+            "HHOD/Raw_train",
+            "HHOD/annotation/instances_train.json"
         ),
         "hhod_test": (
-            "hhod/Raw_test",
-            "hhod/BBox"
+            "HHOD/Raw_test",
+            "HHOD/annotation/instances_test.json"
         )
     }
 

@@ -37,11 +37,11 @@ _C.MODEL.WEIGHT = ""
 # -----------------------------------------------------------------------------
 _C.INPUT = CN()
 # Size of the smallest side of the image during training
-_C.INPUT.MIN_SIZE_TRAIN = 300  # (800,)
+_C.INPUT.MIN_SIZE_TRAIN = 480  # (800,)
 # Maximum size of the side of the image during training
 _C.INPUT.MAX_SIZE_TRAIN = 1024
 # Size of the smallest side of the image during testing
-_C.INPUT.MIN_SIZE_TEST = 300
+_C.INPUT.MIN_SIZE_TEST = 480
 # Maximum size of the side of the image during testing
 _C.INPUT.MAX_SIZE_TEST = 1024
 # Values to be used for image normalization(RGB)
@@ -57,6 +57,7 @@ _C.INPUT.TO_BGR255 = True
 # -----------------------------------------------------------------------------
 _C.DATASETS = CN()
 # List of the dataset names for training, as present in paths_catalog.py
+_C.DATASETS.ADD_DEPTH = False
 _C.DATASETS.TRAIN = ()
 # List of the dataset names for testing, as present in paths_catalog.py
 _C.DATASETS.TEST = ()
@@ -97,19 +98,21 @@ _C.MODEL.BACKBONE.OUT_CHANNELS = 256 * 4
 _C.MODEL.RPN = CN()
 _C.MODEL.RPN.USE_FPN = False
 # Base RPN anchor sizes given in absolute pixels w.r.t. the scaled network input
-_C.MODEL.RPN.ANCHOR_SIZES = (32, 64, 128, 256, 512)
+_C.MODEL.RPN.ANCHOR_SIZES = (16, 32, 64, 128, 256)
 # Stride of the feature map that RPN is attached.
 # For FPN, number of strides should match number of scales
 _C.MODEL.RPN.ANCHOR_STRIDE = (16,)
+_C.MODEL.RPN.ANCHOR_NUM = 9
+_C.MODEL.RPN.ANCHOR_SCALE = 8
 # RPN anchor aspect ratios
-_C.MODEL.RPN.ASPECT_RATIOS = (0.5, 1.0, 2.0)
+_C.MODEL.RPN.ASPECT_RATIOS = (0.5, 0.75, 1.0,1.5, 2.0)
 # Remove RPN anchors that go outside the image by RPN_STRADDLE_THRESH pixels
 # Set to -1 or a large value, e.g. 100000, to disable pruning anchors
 _C.MODEL.RPN.STRADDLE_THRESH = 0
 # Minimum overlap required between an anchor and ground-truth box for the
 # (anchor, gt box) pair to be a positive example (IoU >= FG_IOU_THRESHOLD
 # ==> positive RPN example)
-_C.MODEL.RPN.FG_IOU_THRESHOLD = 0.7
+_C.MODEL.RPN.FG_IOU_THRESHOLD = 0.5
 # Maximum overlap allowed between an anchor and ground-truth box for the
 # (anchor, gt box) pair to be a negative examples (IoU < BG_IOU_THRESHOLD
 # ==> negative RPN example)
@@ -134,6 +137,8 @@ _C.MODEL.RPN.MIN_SIZE = 0
 # all FPN levels
 _C.MODEL.RPN.FPN_POST_NMS_TOP_N_TRAIN = 2000
 _C.MODEL.RPN.FPN_POST_NMS_TOP_N_TEST = 2000
+# Custom rpn head, empty to use default conv or separable conv
+_C.MODEL.RPN.RPN_HEAD = "SingleConvRPNHead"
 
 
 # ---------------------------------------------------------------------------- #
@@ -192,6 +197,9 @@ _C.MODEL.ROI_MASK_HEAD.MLP_HEAD_DIM = 1024
 _C.MODEL.ROI_MASK_HEAD.CONV_LAYERS = (256, 256, 256, 256)
 _C.MODEL.ROI_MASK_HEAD.RESOLUTION = 14
 _C.MODEL.ROI_MASK_HEAD.SHARE_BOX_FEATURE_EXTRACTOR = True
+# Whether or not resize and translate masks to the input image.
+_C.MODEL.ROI_MASK_HEAD.POSTPROCESS_MASKS = False
+_C.MODEL.ROI_MASK_HEAD.POSTPROCESS_MASKS_THRESHOLD = 0.5
 
 # ---------------------------------------------------------------------------- #
 # ResNe[X]t options (ResNets = {ResNet, ResNeXt}
@@ -264,6 +272,6 @@ _C.TEST.IMS_PER_BATCH = 2
 # ---------------------------------------------------------------------------- #
 # Misc options
 # ---------------------------------------------------------------------------- #
-_C.OUTPUT_DIR = "output"
+_C.OUTPUT_DIR = "output/mask-rcnn-r-50-c4-1x/"
 
 _C.PATHS_CATALOG = os.path.join(os.path.dirname(__file__), "paths_catalog.py")
