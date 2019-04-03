@@ -1,63 +1,76 @@
 import torch
 import glob
-from torch.utils.data import Dataset
-import numpy as np
-from PIL import ImageFile,Image
 import os
-
+import torchvision
+from detection_benchmark.structures.segmentation_mask import SegmentationMask
 from detection_benchmark.structures.bounding_box import BoxList
+from PIL import Image
 
 
-def get_roots(root):
-    return glob.glob(root+'/*/*/*/*/*[0-9].bmp')
-
-data_dir = '/home/razer/Documents/pytorch/handhod_faster_rcnn/datasets/hhod/Raw_trainval'
-categorys = os.listdir(data_dir)
-categorys = sorted(categorys)
-classes_map = {c:i+1 for i,c in enumerate(categorys)}
-
-def get_index_with_classname(name):
-    return classes_map[name]
-
-def get_raw_name(root):
-    return root.split('/')[-1]
-
-class HHODDataset(Dataset):
+class HHODDataset(torchvision.datasets.coco.CocoDetection):
     def __init__(
-        self, root, ann_file, transforms=None,
+        self, root, ann_file, remove_images_without_annotations, add_depth, transforms=None,
     ):
-        super(HHODDataset, self).__init__()
-        self.root = get_roots(root)
+        super(HHODDataset, self).__init__(root, ann_file)
+        # sort indices for reproducible results
+        self.ids = sorted(self.ids)
+        self.add_depth = add_depth
+
+        # filter images without detection annotations
+        if remove_images_without_annotations:
+            self.ids = [
+                img_id
+                for img_id in self.ids
+                if len(self.coco.getAnnIds(imgIds=img_id, iscrowd=None)) > 0
+            ]
+
         self.transforms = transforms
-        self.raw_name = get_raw_name(root)
 
     def __getitem__(self, idx):
+        # img, anno = super(HHODDataset, self).__getitem__(idx)
+        coco = self.coco
+        img_id = self.ids[idx]
+        ann_ids = coco.getAnnIds(imgIds=img_id)
+        anno = coco.loadAnns(ann_ids)
 
-        ImageFile.LOAD_TRUNCATED_IMAGES = True
+        path = coco.loadImgs(img_id)[0]['file_name'].replace('.bmp', '_d.bmp')
 
-        img_root = self.root[idx]
-        anno = img_root.replace(self.raw_name, 'BBox').replace('bmp', 'txt')
-        img = Image.open(img_root).convert('RGB')
+        img = Image.open(os.path.join(self.root, path)).convert('RGB')
+        if self.add_depth:
+            coco = self.coco
+            img_id = self.ids[idx]
+            path = coco.loadImgs(img_id)[0]['file_name'].replace('.bmp', '_d.bmp')
+            img_depth = Image.open(os.path.join(self.root, path))
 
-        box = np.loadtxt(anno)
-        box = torch.as_tensor(box).reshape(1, 4)  # guard against no boxes
-        target = BoxList(box, img.size, mode="xywh").convert("xyxy")
+        # filter crowd annotations
+        # TODO might be better to add an extra field
+        anno = [obj for obj in anno if obj["iscrowd"] == 0]
 
-        classes = anno.split('/')[-5]
-        classes = [get_index_with_classname(classes)]
-        classes = torch.tensor(classes)
+        boxes = [obj["bbox"] for obj in anno]
+        boxes = torch.as_tensor(boxes).reshape(-1, 4)  # guard against no boxes
+        target = BoxList(boxes, img.size, mode="xywh").convert("xyxy")
+
+        classes = [obj["category_id"] for obj in anno]
+        classes = torch.Tensor(classes)
         target.add_field("labels", classes)
 
+        masks = [obj["segmentation"] for obj in anno]
+        masks = SegmentationMask(masks, img.size)
+        target.add_field("masks", masks)
+
         target = target.clip_to_image(remove_empty=True)
+
         if self.transforms is not None:
             img, target = self.transforms(img, target)
 
-        return img, target
-
-    def __len__(self):
-        return len(self.root)
+        if self.add_depth:
+            if self.transforms is not None:
+                img_depth, _ = self.transforms(img_depth, target)
+            return (img, img_depth), target, idx
+        else:
+            return img, target, idx
 
     def get_img_info(self, index):
-        img_id = self.root[index]
-        img_data = Image.open(img_id).size
+        img_id = self.ids[index]
+        img_data = self.coco.imgs[img_id]
         return img_data

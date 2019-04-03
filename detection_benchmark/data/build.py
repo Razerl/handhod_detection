@@ -9,13 +9,14 @@ from detection_benchmark.utils.imports import import_file
 from . import datasets as D
 from . import samplers
 
+from .collate_batch_rgbd import BatchCollatorRGBD
 from .collate_batch import BatchCollator
 from .transforms import build_transforms
 
 import numpy as np
 
 
-def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True):
+def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True, add_depth=False):
     """
     Arguments:
         dataset_list (list[str]): Contains the names of the datasets, i.e.,
@@ -34,8 +35,9 @@ def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True):
         factory = getattr(D, data["factory"])
         args = data["args"]
 
-        if data["factory"] == "COCODataset":
+        if data["factory"] == 'HHODDataset':
             args["remove_images_without_annotations"] = is_train
+            args["add_depth"] = add_depth
 
         args["transforms"] = transforms
 
@@ -75,7 +77,7 @@ def _compute_aspect_ratios(dataset):
     aspect_ratios = []
     for i in range(len(dataset)):
         img_info = dataset.get_img_info(i)
-        aspect_ratio = float(img_info[0]) / float(img_info[1])
+        aspect_ratio = float(img_info["height"]) / float(img_info["width"])
         aspect_ratios.append(aspect_ratio)
     return aspect_ratios
 
@@ -147,7 +149,8 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0):
     dataset_list = cfg.DATASETS.TRAIN if is_train else cfg.DATASETS.TEST
 
     transforms = build_transforms(cfg, is_train)
-    datasets = build_dataset(dataset_list, transforms, DatasetCatalog, is_train)
+    add_depth = cfg.DATASETS.ADD_DEPTH
+    datasets = build_dataset(dataset_list, transforms, DatasetCatalog, is_train, add_depth)
 
     data_loaders = []
     for dataset in datasets:
@@ -155,7 +158,10 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0):
         batch_sampler = make_batch_data_sampler(
             dataset, sampler, aspect_grouping, images_per_gpu, num_iters, start_iter
         )
-        collator = BatchCollator(cfg.DATALOADER.SIZE_DIVISIBILITY)
+        if add_depth:
+            collator = BatchCollatorRGBD(cfg.DATALOADER.SIZE_DIVISIBILITY)
+        else:
+            collator = BatchCollator(cfg.DATALOADER.SIZE_DIVISIBILITY)
         num_workers = cfg.DATALOADER.NUM_WORKERS
         data_loader = torch.utils.data.DataLoader(
             dataset,
